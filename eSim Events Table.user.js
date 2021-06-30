@@ -68,7 +68,7 @@ async function main () {
   } else {
     // No Battle links could be found > raise an Alert
     alert(
-      'Do not press the Button before the Page has fully loaded and make sure you that you are on the page where you self can see the Battles.\nFor County Tournament it should be the "SCHEDULER" Tab'
+      'Do not press the Button before the Page has fully loaded and make sure that you are on the page where you self can see the Battles.\nFor County Tournament it should be the "SCHEDULER" Tab'
     )
   }
 }
