@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         eSim Events Table
 // @namespace    eSim-Events
-// @version      0.02
-// @description  Find the Top10 Player in an Event
+// @version      0.9
+// @description  See the Leaderboard of an e-sim Event
 // @author       goekkan
 // @include      https://*.e-sim.org/tournamentEvent.html?id=*
 // @include      https://*.e-sim.org/teamTournament.html?id=*
@@ -11,9 +11,9 @@
 // @grant        none
 // ==/UserScript==
 
-// I could only test finished Events, there was no running event on any Server
-// ! If you are running it for a Country Tournament, make sure you are on the 'SCHEDULER' TAB (/countryTournament.html?id=37#slideShedule)
-// Country Tournaments have a lof Batles, therefor it takes much longer than other Events, however,
+// I could only test finished Events, there were no running Events on any Server
+// ! If you are running it for Country Tournament results, make sure you are on the 'SCHEDULER' TAB (/countryTournament.html?id=37#slideShedule)
+// Country Tournaments have a lot Battles, therefore it takes much longer than other Events, however,
 // if the Status color is not changing for +5s either your Internet or the E-sim is slow.
 
 // Global variables
@@ -27,160 +27,23 @@ function delay (ms) {
   return new Promise((resolve) => setTimeout(resolve, ms))
 }
 
-async function findAllBattleLinks () {
-  // Find all elements <a class="battle-links" href="/battle.html?id=123">
-  let arrayOfBattleLinkElements = document.querySelectorAll('.battle-link')
-  /*
-    Some Events are coded different than others. Annoying..
-    If no Battles could be find with the 'battle-link' classNames, it will now
-    look for elements with 'cup-final-scores' classNames
-    Note: This option can find elements that aren't Battle link
-  */
-  if (arrayOfBattleLinkElements.length === 0) {
-    const cupTable = document.getElementsByClassName('cup-final-scores')[0]
-    // If this also doesn't find anything it will stop here and raise an Alert
-    if (cupTable === undefined) {
-      return false
-    }
-
-    arrayOfBattleLinkElements = cupTable.getElementsByTagName('a')
-  }
-  /*
-  Loop through all elements in the Array and get their href link
-  Check if it starts with 'battle.html?id=' and if so
-  remove that part, which leaves only the id behind.
-  Finally, appened the id to eventBattleIds
-   */
-  for (const element of arrayOfBattleLinkElements) {
-    const link = element.getAttribute('href')
-    if (link.startsWith('battle')) {
-      const battleId = link.replace('battle.html?id=', '')
-      if (!eventBattleIds.includes(battleId)) {
-        eventBattleIds.push(battleId)
-      }
-    }
-  }
-  // If none of the elements were battleLinks -> stop here and raise an Alert
-  if (eventBattleIds.length === 0) {
-    return false
-  }
-  // Sort the eventBattleIds Array
-  eventBattleIds.sort(function (a, b) {
-    return a - b
+(function () {
+  // create and place Button, then wait for button press and call main func
+  const btn = document.createElement('BUTTON')
+  const place = document.getElementsByClassName('testDivwhite')[0]
+  place.after(btn)
+  btn.style = 'font-size: 15px'
+  btn.innerText = 'Leaderboard'
+  btn.addEventListener('click', function () {
+    main()
   })
-}
+})()
 
-// Create a XMLHttpRequest
-async function sendApiRequest (url) {
-  changeStatusColor()
-  let response
-  let jsonResponse
-  try {
-    response = await fetch(url) // send api request
-    jsonResponse = await response.json() // wait for server to return the json api
-    return jsonResponse
-  } catch (err) {
-    /*
-    If an error occures,
-    e-sim redirects you to google if you do  to many requests),
-    simply wait 3secs and then do the same API request again
-    */
-    await delay(3000)
-    response = await fetch(url)
-    jsonResponse = await response.json()
-    return jsonResponse
-  }
-}
-/* TODO: Check if Battle is over and if so save the Battle in an Array.
-  This will be needed in the future
-
-function checkIfBattleIsOver (battleId, currentBattleStats) {
-  const jsonBattlesApi = sendApiRequest('apiBattles.html?battleId=' + battleId)
-  if (jsonBattlesApi.defenderScore === 8 || jsonBattlesApi.attackerScore === 8) {
-    finishedBattlesResults[battleId] = currentBattleStats
-  }
-}
-*/
-function changeStatusColor () {
-  const dotElement = newTab.document.getElementById('dot')
-  if (indexStatus === 0 || indexStatus === 6) {
-    dotElement.style = 'background-color: #E50000'
-    indexStatus = 1
-  } else if (indexStatus === 1) {
-    dotElement.style = 'background-color: #FF8D00'
-    indexStatus = 2
-  } else if (indexStatus === 2) {
-    dotElement.style = 'background-color: #FFEE00'
-    indexStatus = 3
-  } else if (indexStatus === 3) {
-    dotElement.style = 'background-color: #008121'
-    indexStatus = 4
-  } else if (indexStatus === 4) {
-    dotElement.style = 'background-color: #004CFF'
-    indexStatus = 5
-  } else if (indexStatus === 5) {
-    dotElement.style = 'background-color: #760188'
-    indexStatus = 6
-  }
-}
-
-// After one Battle has been checked and calculated which Player did how much damage -> Merge the Results together with the other Battles. Until all Battles are checked.
-async function addCitizensToFinalStats (playersToAdd) {
-  for (const player in playersToAdd) {
-    if (player in jsonEventResults) {
-      jsonEventResults[player].damage += playersToAdd[player].damage
-      jsonEventResults[player].q5Weapons += playersToAdd[player].q5Weapons
-    } else {
-      jsonEventResults[player] = {
-        damage: playersToAdd[player].damage,
-        q5Weapons: playersToAdd[player].q5Weapons
-      }
-    }
-  }
-}
-
-// Check if the Player has used Q5 Weapons and did a 'Berserk'
-function checkWeaponQualityAndIfBerserk (hit) {
-  if (hit.weapon === 5) {
-    if (hit.berserk) {
-      return 5
-    } else {
-      return 1
-    }
-  } else {
-    return 0
-  }
-}
-
-/*
-  Check all hits done in a Battle. Add up how much damage every Player did and how many weapons they used.
-  API Request -> loop through all hits -> Create a new Object if its the Players first hit (ex. { damage: 123456, q5Weapons: 5 } else add up the damage and weps used.)
-*/
-async function calcDamageDoneInBattle (battleId) {
-  const currentBattleStats = {}
-  const jsonApiFights = await sendApiRequest(
-    '/apiFights.html?battleId=' + battleId)
-  for (const hit of jsonApiFights) {
-    const citizenId = hit.citizenId
-    if (citizenId in currentBattleStats) {
-      currentBattleStats[citizenId].damage += hit.damage
-      currentBattleStats[citizenId].q5Weapons +=
-        checkWeaponQualityAndIfBerserk(hit)
-    } else {
-      currentBattleStats[citizenId] = {
-        damage: hit.damage,
-        q5Weapons: checkWeaponQualityAndIfBerserk(hit)
-      }
-    }
-  }
-  await addCitizensToFinalStats(currentBattleStats)
-}
-
-// This fucntion will get called when the Button is pressed.
+// This function will get called when the Button is pressed.
 async function main () {
   // Try to find all Battlinks.
   if ((await findAllBattleLinks()) !== false) {
-    // The function findAllBattleLinks didn't return false. which means battle links have been found sucessfully
+    // The function findAllBattleLinks didn't return false. which means battle links have been found succesfuly
     createNewTabAndWriteHTML() // Create a new Empty Tab inject some HTML
     // Loop through every Battle
     for (let index = 0; index < eventBattleIds.length; index++) {
@@ -205,37 +68,52 @@ async function main () {
   } else {
     // No Battle links could be found > raise an Alert
     alert(
-      'Do not press the Button before the Page has fully loaded and make sure you that you are on the page where youself can see the Battle.\nFor County Tournament it should be the "SCHEDULER" Tab'
+      'Do not press the Button before the Page has fully loaded and make sure you that you are on the page where you self can see the Battles.\nFor County Tournament it should be the "SCHEDULER" Tab'
     )
   }
 }
 
-async function updateLeaderboard (finalResults) {
-  const lb = newTab.document.getElementById('leaderboard')
-  let i = 1
-  for (const element of finalResults) {
-    const newRow = newTab.document.createElement('tr')
-    const newCellPlace = newTab.document.createElement('th')
-    const newCellPlayer = newTab.document.createElement('th')
-    const newCellDamage = newTab.document.createElement('th')
-    const newCellWeapons = newTab.document.createElement('th')
-    newCellPlace.innerText = i
-    let citizen = element[0]
-    if (i < 16) {
-      const citizenApi = await sendApiRequest(
-        '/apiCitizenById.html?id=' + element[0]
-      )
-      citizen = citizenApi.login
+async function findAllBattleLinks () {
+  // Find all elements <a class="battle-links" href="/battle.html?id=123">
+  let arrayOfBattleLinkElements = document.querySelectorAll('.battle-link')
+  /*
+    Some Events are coded different than others...
+    If no Battles could be find with 'battle-link' class names, it will instead
+    look for elements with 'cup-final-scores' class Names
+    Note: This option can find elements that aren't Battle link
+  */
+  if (arrayOfBattleLinkElements.length === 0) {
+    const cupTable = document.getElementsByClassName('cup-final-scores')[0]
+    // If this also doesn't find anything it will stop here and raise an Alert
+    if (cupTable === undefined) {
+      return false
     }
-    newCellPlayer.innerText = citizen
-    newCellDamage.innerText = element[1].toLocaleString('de')
-    newCellWeapons.innerText = element[2].toLocaleString('fr')
-    lb.append(newRow)
-    newRow.append(newCellPlace, newCellPlayer, newCellDamage, newCellWeapons)
-    i++
+
+    arrayOfBattleLinkElements = cupTable.getElementsByTagName('a')
   }
-  indexStatus = 3
-  changeStatusColor()
+  /*
+  Loop through all elements in the Array and get their href link
+  Check if it starts with 'battle.html?id=' and if so,
+  remove that part, which leaves only the id behind.
+  Finally, append the id to eventBattleIds
+   */
+  for (const element of arrayOfBattleLinkElements) {
+    const link = element.getAttribute('href')
+    if (link.startsWith('battle')) {
+      const battleId = link.replace('battle.html?id=', '')
+      if (!eventBattleIds.includes(battleId)) {
+        eventBattleIds.push(battleId)
+      }
+    }
+  }
+  // If none of the elements were battleLinks -> stop here and raise an Alert
+  if (eventBattleIds.length === 0) {
+    return false
+  }
+  // Sort the eventBattleIds Array
+  eventBattleIds.sort(function (a, b) {
+    return a - b
+  })
 }
 
 function createNewTabAndWriteHTML () {
@@ -299,12 +177,124 @@ function createNewTabAndWriteHTML () {
   newTab.document.title = title
 }
 
-// create and place Button, then wait for button press and call main func
-const btn = document.createElement('BUTTON')
-const place = document.getElementsByClassName('testDivwhite')[0]
-place.after(btn)
-btn.style = 'font-size: 15px'
-btn.innerText = 'Leaderboard'
-btn.addEventListener('click', function () {
-  main()
-})
+/*
+  Check all hits done in a Battle. Add up how much damage every Player did and how many weapons they used.
+  API Request -> loop through all hits -> Create a new Object if its the Players first hit (ex. { damage: 123456, q5Weapons: 5 } else add up the damage and weps used.)
+*/
+async function calcDamageDoneInBattle (battleId) {
+  const currentBattleStats = {}
+  const jsonApiFights = await sendApiRequest(
+    '/apiFights.html?battleId=' + battleId)
+  for (const hit of jsonApiFights) {
+    const citizenId = hit.citizenId
+    if (citizenId in currentBattleStats) {
+      currentBattleStats[citizenId].damage += hit.damage
+      currentBattleStats[citizenId].q5Weapons +=
+        checkWeaponQualityAndIfBerserk(hit)
+    } else {
+      currentBattleStats[citizenId] = {
+        damage: hit.damage,
+        q5Weapons: checkWeaponQualityAndIfBerserk(hit)
+      }
+    }
+  }
+  await addCitizensToFinalStats(currentBattleStats)
+}
+// Fetch the API
+async function sendApiRequest (url) {
+  changeStatusColor()
+  let response
+  let jsonResponse
+  try {
+    response = await fetch(url) // send api request
+    jsonResponse = await response.json() // wait for server to return the json api
+    return jsonResponse
+  } catch (err) {
+    /*
+    An can error occur if you do  to many requests),
+    simply wait 3secs and then do the same request again
+    */
+    await delay(3000)
+    response = await fetch(url)
+    jsonResponse = await response.json()
+    return jsonResponse
+  }
+}
+function changeStatusColor () {
+  const dotElement = newTab.document.getElementById('dot')
+  if (indexStatus === 0 || indexStatus === 6) {
+    dotElement.style = 'background-color: #E50000'
+    indexStatus = 1
+  } else if (indexStatus === 1) {
+    dotElement.style = 'background-color: #FF8D00'
+    indexStatus = 2
+  } else if (indexStatus === 2) {
+    dotElement.style = 'background-color: #FFEE00'
+    indexStatus = 3
+  } else if (indexStatus === 3) {
+    dotElement.style = 'background-color: #008121'
+    indexStatus = 4
+  } else if (indexStatus === 4) {
+    dotElement.style = 'background-color: #004CFF'
+    indexStatus = 5
+  } else if (indexStatus === 5) {
+    dotElement.style = 'background-color: #760188'
+    indexStatus = 6
+  }
+}
+
+// Check if the Player has used Q5 Weapons and did a 'Berserk'
+function checkWeaponQualityAndIfBerserk (hit) {
+  if (hit.weapon === 5) {
+    if (hit.berserk) {
+      return 5
+    } else {
+      return 1
+    }
+  } else {
+    return 0
+  }
+}
+
+// After one Battle has been checked and calculated which Player did how much damage -> Merge the Results together with the other Battles. Until all Battles are checked.
+async function addCitizensToFinalStats (playersToAdd) {
+  for (const player in playersToAdd) {
+    if (player in jsonEventResults) {
+      jsonEventResults[player].damage += playersToAdd[player].damage
+      jsonEventResults[player].q5Weapons += playersToAdd[player].q5Weapons
+    } else {
+      jsonEventResults[player] = {
+        damage: playersToAdd[player].damage,
+        q5Weapons: playersToAdd[player].q5Weapons
+      }
+    }
+  }
+}
+
+async function updateLeaderboard (finalResults) {
+  const lb = newTab.document.getElementById('leaderboard')
+  let i = 1
+  for (const element of finalResults) {
+    const newRow = newTab.document.createElement('tr')
+    const newCellPlace = newTab.document.createElement('th')
+    const newCellPlayer = newTab.document.createElement('th')
+    const newCellDamage = newTab.document.createElement('th')
+    const newCellWeapons = newTab.document.createElement('th')
+    newCellPlace.innerText = i
+    let citizen = element[0]
+    if (i < 16) {
+      const citizenApi = await sendApiRequest(
+        '/apiCitizenById.html?id=' + element[0]
+      )
+      citizen = citizenApi.login
+    }
+    newCellPlayer.innerText = citizen
+    newCellDamage.innerText = element[1].toLocaleString('de')
+    newCellWeapons.innerText = element[2].toLocaleString('fr')
+    lb.append(newRow)
+    newRow.append(newCellPlace, newCellPlayer, newCellDamage, newCellWeapons)
+    i++
+  }
+  indexStatus = 3
+  changeStatusColor()
+}
