@@ -1,367 +1,308 @@
 // ==UserScript==
 // @name         eSim MU Storage 2
 // @namespace    eSim-MU2
-// @version      2.04.5
-// @description  Improve the eSim MU Storage Page
+// @version      2.5
+// @description  Improve the E-sim Mu Storage page
 // @author       goekkan
 // @match        https://*.e-sim.org/militaryUnitStorage.html*
 // @icon         https://cdn.discordapp.com/icons/316566483021070356/cfffdee309ec53078e9a9698ec4eef42.png?size=256
 // @grant        none
 // ==/UserScript==
 
+const qualityForm = document.getElementById('quantity')
+const tickAllBtn = document.getElementById('tickAll')
+const esimDonateForm = document.getElementById('donateProductForm')
+const userElement = document.getElementById('userName')
+const userId = userElement.href.split('=')[1]
+const productOptions = document.getElementById('product')
+const storage = document.querySelectorAll('.storage')
+const elementList = document.querySelectorAll('.receipments')
+const foodDiv = document.createElement('div')
+const foodTextarea = document.createElement('input')
+const foodQuantityInput = document.createElement('input')
+const giftDiv = document.createElement('div')
+const giftTextarea = document.createElement('input')
+const giftQuantityInput = document.createElement('input')
+const wepDiv = document.createElement('div')
+const wepTextarea = document.createElement('input')
+const wepQuantityInput = document.createElement('input')
+const btnSendSupps = document.createElement('BUTTON')
+const lineBreak = document.createElement('hr')
 
-//Global variables
-var quality_form = document.getElementById("quantity");
-var tick_all_btn = document.getElementById("tickAll");
-var esim_donate_form = document.getElementById("donateProductForm");
-var user_element = document.getElementById("userName");
-var user_id = user_element.href.split("=")[1];
-var product_options = document.getElementById("product")
-var storage = document.querySelectorAll(".storage");
-var elementList = document.querySelectorAll(".receipments");
+const delay = ms => new Promise(res => setTimeout(res, ms))
 
-var food_div = document.createElement("div");
-var food_textarea = document.createElement("input");
-var food_quantity_input = document.createElement("input");
- 
-var gift_div = document.createElement("div");
-var gift_textarea = document.createElement("input");
-var gift_quantity_input = document.createElement("input");
- 
-var wep_div = document.createElement("div");
-var wep_textarea= document.createElement("input");
-var wep_quantity_input = document.createElement("input");
- 
-var btn_send_supps = document.createElement("BUTTON");
-var line_break = document.createElement("hr");
-
-// sleep function
-const delay = ms => new Promise(res => setTimeout(res, ms));
-
-/* return random number between 4000 and 7000
-    (milisecs for the the sleep function)
-    (randomized to avoid suspicion)
-*/
-function random_n(){
-    return Math.floor(Math.random() * 3000) + 4000
+function randomNumber () {
+  const n = Math.floor(Math.random() * 3000) + 4000
+  return n
 }
 
-/*  queries all .receipments
-    checking in a for loop if
-    the current item is you
-*/
-function find_form_citizen_id(){
-    var elementList = document.querySelectorAll(".receipments");
-    for (var i = 0; i < elementList.length; i++){
-        if (elementList[i].value == user_id ) {
-            return elementList[i].name;
-        }
+function findFormCitizenId () {
+  for (let i = 0; i < elementList.length; i++) {
+    if (elementList[i].value === userId) {
+      return elementList[i].name
     }
+  }
 }
 
-/*  Changes the color, like a status update
-    Green means 'Product sent'
-    Yellow means 'Script is sleeping, will be sent soon'
-*/
-function supps_status_color (supp_type, status) {
-    if (supp_type == "FOOD"){
-        if (status == "ORANGE"){
-            food_textarea.style.color = "Orange";
-            food_quantity_input.style.color = "Orange";
+function createElements () {
+  const quantityAdd10Btn = document.createElement('BUTTON')
+  quantityAdd10Btn.type = 'button'
+  quantityAdd10Btn.setAttribute('class', 'submit')
+  quantityAdd10Btn.innerHTML = '10'
+  qualityForm.parentNode.insertBefore(quantityAdd10Btn, qualityForm.nextSibling)
+  quantityAdd10Btn.addEventListener('click', function () { addQuantity(10) })
 
-        } else if (status == "GREEN"){
-            food_quantity_input.style.color = "#11806a";
-            food_textarea.style.color = "#11806a";
+  const quantityAdd100Btn = document.createElement('BUTTON')
+  quantityAdd100Btn.type = 'button'
+  quantityAdd100Btn.innerHTML = '100'
+  qualityForm.parentNode.insertBefore(quantityAdd100Btn, quantityAdd10Btn.nextSibling)
+  quantityAdd100Btn.addEventListener('click', function () { addQuantity(100) })
 
-        }
-    } else if (supp_type == "GIFT"){
-        if (status == "ORANGE"){
-            gift_textarea.style.color = "Orange";
-            gift_quantity_input.style.color = "Orange";
+  const quantityAdd1000btn = document.createElement('BUTTON')
+  quantityAdd1000btn.type = 'button'
+  quantityAdd1000btn.innerHTML = '1000'
+  qualityForm.parentNode.insertBefore(quantityAdd1000btn, quantityAdd100Btn.nextSibling)
+  quantityAdd1000btn.addEventListener('click', function () { addQuantity(1000) })
 
-        } else if (status == "GREEN"){
-            gift_textarea.style.color = "#11806a";
-            gift_quantity_input.style.color = "#11806a";
-        }
-    } else if (supp_type == "WEAPON"){
-        if (status == "ORANGE"){
-            wep_div.style.color = "Orange";
-            wep_quantity_input.style.color = "Orange";
+  const formName = findFormCitizenId()
+  const sendYourselfBtn = document.createElement('BUTTON')
+  sendYourselfBtn.innerHTML = 'Send Yourself'
+  sendYourselfBtn.setAttribute('name', formName)
+  sendYourselfBtn.setAttribute('value', userId)
+  tickAllBtn.parentNode.insertBefore(sendYourselfBtn, tickAllBtn.nextSibling)
 
-        } else if (status == "GREEN"){
-            wep_div.style.color = "#11806a";
-            wep_quantity_input.style.color = "#11806a";
-        }
+  foodDiv.style.display = 'inline-block'
+  foodDiv.setAttribute('id', 'foodProductForm')
+
+  esimDonateForm.parentNode.insertBefore(foodDiv, esimDonateForm)
+
+  foodTextarea.setAttribute('value', 'Q5-FOOD')
+  foodTextarea.setAttribute('name', 'product')
+  foodTextarea.value = 'Food'
+  foodTextarea.disabled = true
+  foodTextarea.style.cssText = 'color:black; width:33px; height:15px;'
+  foodDiv.appendChild(foodTextarea)
+
+  foodQuantityInput.style.cssText = 'margin-left: -0.1em!important; margin-right: 0.5em!important; width:31px; height:15px'
+  foodQuantityInput.setAttribute('name', 'quantity')
+  foodQuantityInput.setAttribute('value', '15')
+  foodQuantityInput.type = 'digit'
+  foodDiv.appendChild(foodQuantityInput)
+
+  giftDiv.style.display = 'inline-block'
+  giftDiv.setAttribute('id', 'giftProductForm')
+
+  esimDonateForm.parentNode.insertBefore(giftDiv, esimDonateForm)
+
+  giftTextarea.value = 'Gift'
+  giftTextarea.disabled = true
+  giftTextarea.style.cssText = 'color:black; width:30px; height:15px;'
+  giftDiv.appendChild(giftTextarea)
+
+  giftQuantityInput.style.cssText = 'margin-left: -0.1em!important; margin-right: 0.5em!important; width:31px; height:15px'
+  giftQuantityInput.type = 'digit'
+  giftQuantityInput.setAttribute('value', '15')
+  giftDiv.appendChild(giftQuantityInput)
+
+  wepDiv.style.display = 'inline-block'
+  wepDiv.setAttribute('id', 'wepProductForm')
+  wepDiv.noValidate = true
+  esimDonateForm.parentNode.insertBefore(wepDiv, esimDonateForm)
+
+  wepTextarea.value = 'Wep'
+  wepTextarea.disabled = true
+  wepTextarea.style.cssText = 'color:black; width:30px; height:15px;'
+  wepDiv.appendChild(wepTextarea)
+
+  wepQuantityInput.style.cssText = 'margin-left: -0.1em!important; margin-right: 0.5em!important; width:31px; height:15px'
+  wepQuantityInput.type = 'digit'
+  wepQuantityInput.setAttribute('value', '250')
+  wepDiv.appendChild(wepQuantityInput)
+
+  btnSendSupps.type = 'button'
+  btnSendSupps.addEventListener('click', sendSupps)
+  btnSendSupps.innerHTML = 'SEND SUPPS'
+  esimDonateForm.parentNode.insertBefore(btnSendSupps, esimDonateForm)
+
+  esimDonateForm.parentNode.insertBefore(lineBreak, esimDonateForm)
+
+  productOptions.options[0].text = 'Click on an item'
+}
+
+function suppsStatusColor (suppType, status) {
+  if (suppType === 'FOOD') {
+    if (status === 'ORANGE') {
+      foodTextarea.style.color = 'Orange'
+      foodQuantityInput.style.color = 'Orange'
+    } else if (status === 'GREEN') {
+      foodQuantityInput.style.color = '#11806a'
+      foodTextarea.style.color = '#11806a'
     }
-}
-
-/*  Change the Color back to normal (Black)
-    After all Products have been sent */
-function reset_buttons_and_text(){
-    food_textarea.style.color = "Black";
-    food_quantity_input.style.color = "Black";
-    gift_textarea.style.color = "Black";
-    gift_quantity_input.style.color = "Black";
-    wep_div.style.color = "Black";
-    wep_quantity_input.style.color = "Black";
-    btn_send_supps.disabled = false;
-}
-
-// Create a XMLHttpRequest 
-function start_connection(){
-    var xhr = new XMLHttpRequest();
-    xhr.open("POST", '/militaryUnitStorage.html', true);
-
-    //Send the proper header information along with the request
-    xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
-
-    xhr.onreadystatechange = function() { // Call a function when the state changes.
-        if (this.readyState === XMLHttpRequest.DONE) {
-            // Request finished. Do processing here.
-        }
+  }
+  if (suppType === 'GIFT') {
+    if (status === 'ORANGE') {
+      giftTextarea.style.color = 'Orange'
+      giftQuantityInput.style.color = 'Orange'
+    } else if (status === 'GREEN') {
+      giftTextarea.style.color = '#11806a'
+      giftQuantityInput.style.color = '#11806a'
     }
-    return xhr
+  }
+  if (suppType === 'WEAPON') {
+    if (status === 'ORANGE') {
+      wepTextarea.style.color = 'Orange'
+      wepQuantityInput.style.color = 'Orange'
+    } else if (status === 'GREEN') {
+      wepTextarea.style.color = '#11806a'
+      wepQuantityInput.style.color = '#11806a'
+    }
+  }
 }
 
-/* async function 
-*/
-const send_supps = async () => {
-    btn_send_supps.disabled = true; 
-    // Makes the 'Send Supps'Button not clicable
-
-    var xhr;
-    var citizen_id = find_form_citizen_id()
-    /*  If User has requested the product ->
-        1. Change the Input Fields color to Orange
-        2. Sleep for a random time (to avoid suspicion)
-        3. Construct the the Request Payload example:
-            product=5-WEAPON&quantity=1&reason=&citizen1=123
-        4. Create a XMLHttpRequest
-        5. Change the Input Fields color to Green.
-    */
-    if (food_quantity_input.value > 1){
-        supps_status_color("FOOD", "ORANGE");
-        await delay(random_n());
-        var food_form_data = "product=5-FOOD&quantity=" + food_quantity_input.value + "&reason=&"+ citizen_id + "=" + user_id;
-        xhr = start_connection();
-        xhr.send(food_form_data);
-        supps_status_color("FOOD", "GREEN");
-
-    }
-    if (gift_quantity_input.value > 1){
-        supps_status_color("GIFT", "ORANGE");
-        await delay(random_n());
-        var gift_form_data = "product=5-GIFT&quantity=" + gift_quantity_input.value + "&reason=&"+ citizen_id + "=" + user_id;
-        xhr = start_connection();
-        xhr.send(gift_form_data);
-        supps_status_color("GIFT", "GREEN");
-    }
-    if (wep_quantity_input.value > 1){
-        supps_status_color("WEAPON", "ORANGE");
-        await delay(random_n());
-        var wep_form_data = "product=5-WEAPON&quantity=" + wep_quantity_input.value + "&reason=&"+ citizen_id + "=" + user_id;
-        xhr = start_connection();
-        xhr.send(wep_form_data);
-        supps_status_color("WEAPON", "GREEN");
-    }
-    reset_buttons_and_text() // Reset colors to black
+function resetButtonsAndText () {
+  foodTextarea.style.color = 'Black'
+  foodQuantityInput.style.color = 'Black'
+  giftTextarea.style.color = 'Black'
+  giftQuantityInput.style.color = 'Black'
+  wepTextarea.style.color = 'Black'
+  wepQuantityInput.style.color = 'Black'
+  btnSendSupps.disabled = false
 }
 
-// Add up quanity with amount on every 10/100/1000_quantity_add_btn presss
-function add_quantity(amount) {
-    quality_form.value = parseInt(quality_form.value) + amount;
-}
+function startConnection () {
+  const xhr = new XMLHttpRequest()
+  xhr.open('POST', '/militaryUnitStorage.html', true)
 
-function create_elements(){
-    /*  Create 3 buttons
-        Place them next to the esim Quantity Input field
-        Event listener > on click > increase Quantity
-    */
-    var quantity_add_10_btn = document.createElement("BUTTON");
-    quantity_add_10_btn.type = "button";
-    quantity_add_10_btn.setAttribute('class', 'submit');
-    quantity_add_10_btn.innerHTML = '10';
-    quality_form.parentNode.insertBefore(quantity_add_10_btn, quality_form.nextSibling);
-    quantity_add_10_btn.addEventListener("click", function(){add_quantity(10)});
+  // Send the proper header information along with the request
+  xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded')
 
-    var quantity_add_100_btn = document.createElement("BUTTON");
-    quantity_add_100_btn.type = "button";
-    quantity_add_100_btn.innerHTML = '100';
-    quality_form.parentNode.insertBefore(quantity_add_100_btn, quantity_add_10_btn.nextSibling);
-    quantity_add_100_btn.addEventListener("click", function(){add_quantity(100)});
-
-    var quantity_add_1000_btn = document.createElement("BUTTON");
-    quantity_add_1000_btn.type = "button";
-    quantity_add_1000_btn.innerHTML = '1000';
-    quality_form.parentNode.insertBefore(quantity_add_1000_btn, quantity_add_100_btn.nextSibling);
-    quantity_add_1000_btn.addEventListener("click", function(){add_quantity(1000)});
-
-    // Create 'Send Yourself' button
-    var send_yourself_btn = document.createElement("BUTTON");
-    send_yourself_btn.innerHTML = 'Send Yourself';
-    send_yourself_btn.setAttribute("name", find_form_citizen_id);
-    send_yourself_btn.setAttribute("value", user_id);
-    tick_all_btn.parentNode.insertBefore(send_yourself_btn, tick_all_btn.nextSibling);
-
-    /* Create 3 divs (Food,Gift,Weapon)
-        Insert texteara + input field
-    */
-    var food_div = document.createElement("div");
-    food_div.style.display = "inline-block";
-    food_div.setAttribute('id',"foodProductForm");
-
-    esim_donate_form.parentNode.insertBefore(food_div, esim_donate_form);
-
-    var food_textarea = document.createElement("textarea");
-    food_textarea.setAttribute("value", "Q5-FOOD");
-    food_textarea.setAttribute("name", "product");
-    food_textarea.value = "Food";
-    food_textarea.disabled = true;
-    food_textarea.style.cssText = 'color:black; width:33px; height:15px;';
-    food_div.appendChild(food_textarea);
-
-    var food_quantity_input = document.createElement("input");
-    food_quantity_input.style.cssText = 'margin-left: -0.1em!important; margin-right: 0.5em!important; width:31px; height:15px';
-    food_quantity_input.setAttribute("name", "quantity");
-    food_quantity_input.setAttribute("value", "15");
-    food_quantity_input.type = "digit";
-    food_div.appendChild(food_quantity_input);
-
-    var gift_div = document.createElement("div");
-    gift_div.style.display = "inline-block";
-    gift_div.setAttribute('id',"giftProductForm");
-
-    esim_donate_form.parentNode.insertBefore(gift_div, esim_donate_form);
-
-    var gift_textarea = document.createElement("textarea");
-    gift_textarea.value = "Gift";
-    gift_textarea.disabled = true;
-    gift_textarea.style.cssText = 'color:black; width:30px; height:15px;';
-    gift_div.appendChild(gift_textarea);
-
-    var gift_quantity_input = document.createElement("input");
-    gift_quantity_input.style.cssText = 'margin-left: -0.1em!important; margin-right: 0.5em!important; width:31px; height:15px';
-    gift_quantity_input.type = "digit";
-    gift_quantity_input.setAttribute("value", "15");
-    gift_div.appendChild(gift_quantity_input);
-
-    var wep_donate_form = document.createElement("div");
-    wep_donate_form.style.display = "inline-block";
-    wep_donate_form.setAttribute('id',"wepProductForm");
-    wep_donate_form.noValidate = true;
-    esim_donate_form.parentNode.insertBefore(wep_donate_form, esim_donate_form);
-
-    var wep_div = document.createElement("textarea");
-    wep_div.value = "Wep";
-    wep_div.disabled = true;
-    wep_div.style.cssText = 'color:black; width:30px; height:15px;';
-    wep_donate_form.appendChild(wep_div);
-
-    var wep_quantity_input = document.createElement("input");
-    wep_quantity_input.style.cssText = 'margin-left: -0.1em!important; margin-right: 0.5em!important; width:31px; height:15px'
-    wep_quantity_input.type = "digit";
-    wep_quantity_input.setAttribute("value", "250");
-    wep_donate_form.appendChild(wep_quantity_input);
-
-    // Create 'Send Supps' button
-    var btn_send_supps = document.createElement("BUTTON")
-    btn_send_supps.type = "button"
-    btn_send_supps.addEventListener("click", send_supps);
-    btn_send_supps.innerHTML = "SEND SUPPS"
-    esim_donate_form.parentNode.insertBefore(btn_send_supps, esim_donate_form);
-
-    // Change the selected default Text 
-    product_options.options[0].text = "Click on an item"
-}
-
-// Selects to Product you have clicked on in your Storage
-function clicked_on(item){
-    for (var i = 1; i < product_options.length; i++) {
-        var p_option = product_options[i]
-        if (p_option.value == item){
-            p_option.selected = true
-        }
+  xhr.onreadystatechange = function () { // Call a function when the state changes.
+    if (this.readyState === XMLHttpRequest.DONE) {
+      // Request finished. Do processing here.
     }
+  }
+  return xhr
 }
 
-// Call func to create all elements
-create_elements()
+const sendSupps = async () => {
+  btnSendSupps.disabled = true
 
+  let xhr
+  const citizenId = findFormCitizenId()
+  if (foodQuantityInput.value > 1) {
+    suppsStatusColor('FOOD', 'ORANGE')
+    await delay(randomNumber())
+    const foodFormData = 'product=5-FOOD&quantity=' + foodQuantityInput.value + '&reason=&' + citizenId + '=' + userId
+    xhr = startConnection()
+    xhr.send(foodFormData)
+    suppsStatusColor('FOOD', 'GREEN')
+  }
+  if (giftQuantityInput.value > 1) {
+    suppsStatusColor('GIFT', 'ORANGE')
+    await delay(randomNumber())
+    const giftFormData = 'product=5-GIFT&quantity=' + giftQuantityInput.value + '&reason=&' + citizenId + '=' + userId
+    xhr = startConnection()
+    xhr.send(giftFormData)
+    suppsStatusColor('GIFT', 'GREEN')
+  }
+  if (wepQuantityInput.value > 1) {
+    suppsStatusColor('WEAPON', 'ORANGE')
+    await delay(randomNumber())
+    console.log('product=5-WEAPON&quantity=' + wepQuantityInput.value + '&reason=&' + citizenId + '=' + userId)
+    const wepFormData = 'product=5-WEAPON&quantity=' + wepQuantityInput.value + '&reason=&' + citizenId + '=' + userId
+    xhr = startConnection()
+    xhr.send(wepFormData)
+    suppsStatusColor('WEAPON', 'GREEN')
+  }
+  resetButtonsAndText()
+}
 
-// Create an Event Listener for every Product in the MU Storage
-for (var i = 0; i < storage.length; i++) {
-    var item_in_storage = storage[i]
-    var item_dirty = item.children[0].className
-    if (item_dirty){
-        var item_clean = item_dirty.replace("-ammount","")
-        switch (item_clean){
-            case "Weapon-5":
-                item_in_storage.addEventListener("click", function(){clicked_on("5-WEAPON")});
-                break;
-            case "Weapon-4":
-                item_in_storage.addEventListener("click", function(){clicked_on("4-WEAPON")});
-                break;
-            case "Weapon-3":
-                item_in_storage.addEventListener("click", function(){clicked_on("3-WEAPON")});
-                break;
-            case "Weapon-2":
-                item_in_storage.addEventListener("click", function(){clicked_on("2-WEAPON")});
-                break;
-            case "Weapon-1":
-                item_in_storage.addEventListener("click", function(){clicked_on("1-WEAPON")});
-                break;
-            case "Food-5":
-                item_in_storage.addEventListener("click", function(){clicked_on("5-FOOD")});
-                break;
-            case "Food-4":
-                item_in_storage.addEventListener("click", function(){clicked_on("4-FOOD")});
-                break;
-            case "Food-3":
-                item_in_storage.addEventListener("click", function(){clicked_on("3-FOOD")});
-                break;
-            case "Food-2":
-                item_in_storage.addEventListener("click", function(){clicked_on("2-FOOD")});
-                break;
-            case "Food-1":
-                item_in_storage.addEventListener("click", function(){clicked_on("1-FOOD")});
-                break;
-            case "Gift-5":
-                item_in_storage.addEventListener("click", function(){clicked_on("5-GIFT")});
-                break;
-            case "Gift-4":
-                item_in_storage.addEventListener("click", function(){clicked_on("4-GIFT")});
-                break;
-            case "Gift-3":
-                item_in_storage.addEventListener("click", function(){clicked_on("3-GIFT")});
-                break;
-            case "Gift-2":
-                item_in_storage.addEventListener("click", function(){clicked_on("2-GIFT")});
-                break;
-            case "Gift-1":
-                item_in_storage.addEventListener("click", function(){clicked_on("1-GIFT")});
-                break;
-            case "Ticket-5":
-                item_in_storage.addEventListener("click", function(){clicked_on("5-TICKET")});
-                break;
-            case "Ticket-4":
-                item_in_storage.addEventListener("click", function(){clicked_on("4-TICKET")});
-                break
-            case "Ticket-3":
-                item_in_storage.addEventListener("click", function(){clicked_on("3-TICKET")});
-                break;
-            case "Ticket-2":
-                item_in_storage.addEventListener("click", function(){clicked_on("2-TICKET")});
-                break;
-            case "Ticket-1":
-                item_in_storage.addEventListener("click", function(){clicked_on("1-TICKET")});
-                break;
-            case "House-5":
-                item_in_storage.addEventListener("click", function(){clicked_on("1-HOUSE")});
-                break;
-            case "Estate-5":
-                item_in_storage.addEventListener("click", function(){clicked_on("1-ESTATE")});
-                break;
-            
-        }
+function addQuantity (amount) {
+  qualityForm.value = parseInt(qualityForm.value) + amount
+}
+
+function itemClickedOn (item) {
+  for (let i = 1; i < productOptions.length; i++) {
+    const pOption = productOptions[i]
+    if (pOption.value === item) {
+      pOption.selected = true
     }
+  }
+}
+
+createElements()
+for (let i = 0; i < storage.length; i++) {
+  const itemInStorage = storage[i]
+  const itemDirty = itemInStorage.children[0].className
+  if (itemDirty) {
+    const itemClean = itemDirty.replace('-ammount', '')
+    switch (itemClean) {
+      case 'Weapon-5':
+        itemInStorage.addEventListener('click', function () { itemClickedOn('5-WEAPON') })
+        break
+      case 'Weapon-4':
+        itemInStorage.addEventListener('click', function () { itemClickedOn('4-WEAPON') })
+        break
+      case 'Weapon-3':
+        itemInStorage.addEventListener('click', function () { itemClickedOn('3-WEAPON') })
+        break
+      case 'Weapon-2':
+        itemInStorage.addEventListener('click', function () { itemClickedOn('2-WEAPON') })
+        break
+      case 'Weapon-1':
+        itemInStorage.addEventListener('click', function () { itemClickedOn('1-WEAPON') })
+        break
+      case 'Food-5':
+        itemInStorage.addEventListener('click', function () { itemClickedOn('5-FOOD') })
+        break
+      case 'Food-4':
+        itemInStorage.addEventListener('click', function () { itemClickedOn('4-FOOD') })
+        break
+      case 'Food-3':
+        itemInStorage.addEventListener('click', function () { itemClickedOn('3-FOOD') })
+        break
+      case 'Food-2':
+        itemInStorage.addEventListener('click', function () { itemClickedOn('2-FOOD') })
+        break
+      case 'Food-1':
+        itemInStorage.addEventListener('click', function () { itemClickedOn('1-FOOD') })
+        break
+      case 'Gift-5':
+        itemInStorage.addEventListener('click', function () { itemClickedOn('5-GIFT') })
+        break
+      case 'Gift-4':
+        itemInStorage.addEventListener('click', function () { itemClickedOn('4-GIFT') })
+        break
+      case 'Gift-3':
+        itemInStorage.addEventListener('click', function () { itemClickedOn('3-GIFT') })
+        break
+      case 'Gift-2':
+        itemInStorage.addEventListener('click', function () { itemClickedOn('2-GIFT') })
+        break
+      case 'Gift-1':
+        itemInStorage.addEventListener('click', function () { itemClickedOn('1-GIFT') })
+        break
+      case 'Ticket-5':
+        itemInStorage.addEventListener('click', function () { itemClickedOn('5-TICKET') })
+        break
+      case 'Ticket-4':
+        itemInStorage.addEventListener('click', function () { itemClickedOn('4-TICKET') })
+        break
+      case 'Ticket-3':
+        itemInStorage.addEventListener('click', function () { itemClickedOn('3-TICKET') })
+        break
+      case 'Ticket-2':
+        itemInStorage.addEventListener('click', function () { itemClickedOn('2-TICKET') })
+        break
+      case 'Ticket-1':
+        itemInStorage.addEventListener('click', function () { itemClickedOn('1-TICKET') })
+        break
+      case 'House-5':
+        itemInStorage.addEventListener('click', function () { itemClickedOn('5-HOUSE') })
+        break
+      case 'Estate-5':
+        itemInStorage.addEventListener('click', function () { itemClickedOn('5-ESTATE') })
+        break
+    }
+  }
 }
