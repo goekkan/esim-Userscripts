@@ -1,7 +1,7 @@
 // ==UserScript==
-// @name         eSim Events Table
-// @namespace    eSim-Events
-// @version      0.9
+// @name         eSim Events Table DEV
+// @namespace    eSim-EventsDEV
+// @version      0.9b
 // @description  See the Leaderboard of an e-sim Event
 // @author       goekkan
 // @include      https://*.e-sim.org/tournamentEvent.html?id=*
@@ -43,7 +43,7 @@ function delay (ms) {
 async function main () {
   // Try to find all Battlinks.
   if ((await findAllBattleLinks()) !== false) {
-    // The function findAllBattleLinks didn't return false. which means battle links have been found succesfuly
+    // The function findAllBattleLinks didn't return false. which means battle links have been found successfully
     createNewTabAndWriteHTML() // Create a new Empty Tab inject some HTML
     // Loop through every Battle
     for (let index = 0; index < eventBattleIds.length; index++) {
@@ -57,7 +57,8 @@ async function main () {
       sortable.push([
         player,
         jsonEventResults[player].damage,
-        jsonEventResults[player].q5Weapons
+        jsonEventResults[player].q5Weapons,
+        jsonEventResults[player].q1Weapons
       ])
     }
     sortable.sort(function (a, b) {
@@ -154,8 +155,9 @@ function createNewTabAndWriteHTML () {
 </style>
 
 <body style="text-align: center; background-color: #333333; color:white">
-    <div id="info">Important:<br />If the Status is blinking, the script is still running<br /> Do <strong
-            style="color: red">not</strong> refresh any e-sim page.
+    <div id="info">Important:<br />If the Status Color is changing, the script is still running<br />
+    If the Colors don't change, the Server/your Internet might be slow<br/> 
+    Do <strong style="color: red">not</strong> refresh any e-sim page.
         <br />Do <strong style="color: red">not</strong> fight.
     </div>
     <div style="text-align:center">
@@ -169,6 +171,7 @@ function createNewTabAndWriteHTML () {
             <th>Player</th>
             <th>Damage</th>
             <th>Q5 Weapons</th>
+            <th>Q1 Weapons</th>
         </tr>
     </table>
 </body>
@@ -176,7 +179,6 @@ function createNewTabAndWriteHTML () {
 </html>`)
   newTab.document.title = title
 }
-
 /*
   Check all hits done in a Battle. Add up how much damage every Player did and how many weapons they used.
   API Request -> loop through all hits -> Create a new Object if its the Players first hit (ex. { damage: 123456, q5Weapons: 5 } else add up the damage and weps used.)
@@ -187,14 +189,31 @@ async function calcDamageDoneInBattle (battleId) {
     '/apiFights.html?battleId=' + battleId)
   for (const hit of jsonApiFights) {
     const citizenId = hit.citizenId
+    const berserkAndWepQ = checkWeaponQualityAndIfBerserk(hit)
+    let q1Wep = 0
+    let q5Wep = 0
+    if (berserkAndWepQ[0] === 5 && berserkAndWepQ[1] === 5) {
+      // Berserk and Q5
+      q5Wep = 5
+    } else if (berserkAndWepQ[0] === 1 && berserkAndWepQ[1] === 5) {
+      // Single Hit and Q5
+      q5Wep = 1
+    } else if (berserkAndWepQ[0] === 5 && berserkAndWepQ[1] === 1) {
+      // Berserk and Q1
+      q1Wep = 5
+    } else if (berserkAndWepQ[0] === 1 && berserkAndWepQ[1] === 1) {
+      // Single hit and Q1
+      q1Wep = 1
+    }
     if (citizenId in currentBattleStats) {
       currentBattleStats[citizenId].damage += hit.damage
-      currentBattleStats[citizenId].q5Weapons +=
-        checkWeaponQualityAndIfBerserk(hit)
+      currentBattleStats[citizenId].q5Weapons += q5Wep
+      currentBattleStats[citizenId].q1Weapons += q1Wep
     } else {
       currentBattleStats[citizenId] = {
         damage: hit.damage,
-        q5Weapons: checkWeaponQualityAndIfBerserk(hit)
+        q5Weapons: q5Wep,
+        q1Weapons: q1Wep
       }
     }
   }
@@ -202,6 +221,7 @@ async function calcDamageDoneInBattle (battleId) {
 }
 // Fetch the API
 async function sendApiRequest (url) {
+  console.log(url)
   changeStatusColor()
   let response
   let jsonResponse
@@ -245,14 +265,18 @@ function changeStatusColor () {
 
 // Check if the Player has used Q5 Weapons and did a 'Berserk'
 function checkWeaponQualityAndIfBerserk (hit) {
-  if (hit.weapon === 5) {
-    if (hit.berserk) {
-      return 5
-    } else {
-      return 1
-    }
+  if (hit.berserk) {
+    if (hit.weapon === 5) {
+      return [5, 5]
+    } else if (hit.weapon === 1) {
+      return [5, 1]
+    } else { return [5, 0] }
   } else {
-    return 0
+    if (hit.weapon === 5) {
+      return [1, 5]
+    } else if (hit.weapon === 1) {
+      return [1, 1]
+    } else { return [1, 0] }
   }
 }
 
@@ -262,10 +286,12 @@ async function addCitizensToFinalStats (playersToAdd) {
     if (player in jsonEventResults) {
       jsonEventResults[player].damage += playersToAdd[player].damage
       jsonEventResults[player].q5Weapons += playersToAdd[player].q5Weapons
+      jsonEventResults[player].q1Weapons += playersToAdd[player].q1Weapons
     } else {
       jsonEventResults[player] = {
         damage: playersToAdd[player].damage,
-        q5Weapons: playersToAdd[player].q5Weapons
+        q5Weapons: playersToAdd[player].q5Weapons,
+        q1Weapons: playersToAdd[player].q1Weapons
       }
     }
   }
@@ -279,7 +305,8 @@ async function updateLeaderboard (finalResults) {
     const newCellPlace = newTab.document.createElement('th')
     const newCellPlayer = newTab.document.createElement('th')
     const newCellDamage = newTab.document.createElement('th')
-    const newCellWeapons = newTab.document.createElement('th')
+    const newCellQ5Weapons = newTab.document.createElement('th')
+    const newCellQ1Weapons = newTab.document.createElement('th')
     newCellPlace.innerText = i
     let citizen = element[0]
     if (i < 16) {
@@ -290,11 +317,13 @@ async function updateLeaderboard (finalResults) {
     }
     newCellPlayer.innerText = citizen
     newCellDamage.innerText = element[1].toLocaleString('de')
-    newCellWeapons.innerText = element[2].toLocaleString('fr')
+    newCellQ5Weapons.innerText = element[2].toLocaleString('fr')
+    newCellQ1Weapons.innerText = element[3].toLocaleString('fr')
     lb.append(newRow)
-    newRow.append(newCellPlace, newCellPlayer, newCellDamage, newCellWeapons)
+    newRow.append(newCellPlace, newCellPlayer, newCellDamage, newCellQ5Weapons, newCellQ1Weapons)
     i++
   }
   indexStatus = 3
   changeStatusColor()
+  location.reload()
 }
