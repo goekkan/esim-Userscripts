@@ -29,6 +29,7 @@ const wepQuantityInput = document.createElement('input')
 const btnSendSupps = document.createElement('BUTTON')
 const lineBreak = document.createElement('hr')
 
+// eslint-disable-next-line promise/param-names
 const delay = ms => new Promise(res => setTimeout(res, ms))
 
 function randomNumber () {
