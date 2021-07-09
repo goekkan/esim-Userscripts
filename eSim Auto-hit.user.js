@@ -9,6 +9,8 @@
 // @grant        none
 // ==/UserScript==
 
+// WORK IN PROGRESS; SCRIPT NOT FINISHED YET
+
 (function () {
   // create and place Button, then wait for button press and call main func
   const facebookButton = document.querySelector('.icon-facebook').parentNode
