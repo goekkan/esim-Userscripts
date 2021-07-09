@@ -16,6 +16,7 @@ Click on the  **'Leaderboard'** Button on the Event Page and a new Tab will be o
 - Added 3 Buttons to increase the Quantity of requested Item (10, 100, 1000)
 - You can choose yourself as Recipient with just one Button click.
 ![Improved Page](https://i.ibb.co/C8PrnRX/MU-s.png)
+
 **TODO:** It's ugly, make it pretty...
 ## Auto-hit
 
