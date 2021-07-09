@@ -41,7 +41,7 @@ function delay (ms) {
 
 // This function will get called when the Button is pressed.
 async function main () {
-  // Try to find all Battlinks.
+  // Try to find all Battle links.
   if ((await findAllBattleLinks()) !== false) {
     // The function findAllBattleLinks didn't return false. which means battle links have been found successfully
     createNewTabAndWriteHTML() // Create a new Empty Tab inject some HTML
