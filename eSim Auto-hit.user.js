@@ -46,7 +46,11 @@ function createTab () {
   suppInfoText.innerText = 'Please pick Food, Gift and Wep quality. Only pick Food/Gift if you want to consume them.'
   newTab.document.body.append(suppInfoDiv)
 
+  newTab.document.body.append(document.createElement('hr'))
+
   addImages()
+
+  newTab.document.body.append(document.createElement('hr'))
 
   // Find out if RW or DOW
   const attackerBerserkBtn = document.getElementById('fightButtonBerserk2')
@@ -56,7 +60,7 @@ function createTab () {
     rwText.innerText = 'The Battle is a RW, please pick your Side.'
     newTab.document.body.append(rwText)
 
-    // Create input to pick side
+    // Create btns to pick side
     const defenderDiv = newTab.document.createElement('BUTTON')
     // defenderDiv.innerText = defender
     defenderDiv.id = 'btnDef'
@@ -77,7 +81,7 @@ function createTab () {
 
   console.log(attackerBerserkBtn)
   // CSS
-  const styles = `body {background-color: #333333;text-align: center;} hr {color: #333333; width: 400px;} h1 {color: #FFFFFF;} rwText {color:red} .rw-text{color: red;margin-bottom:5px;}img {width: 64px; border-color: aliceblue;} #btnDef {background-image: url(${getCountrySVG(defender)}); background-repeat: no-repeat; height: 64px; width: 64px;} #btnAtk {background-image: url(${getCountrySVG(attacker)}); background-repeat: no-repeat; height: 64px; width: 64px;}`
+  const styles = `body {background-color: #333333;text-align: center;} hr {color: #333333; width: 400px;} h1 {color: #FFFFFF;} rwText {color:red} .rw-text{color: red;margin-bottom:5px;}img {width: 64px; border-color: aliceblue;} #btnDef {background-image: url(${getCountrySVG(defender)}); background-repeat: no-repeat; height: 64px; width: 64px;} #btnAtk {background-image: url(${getCountrySVG(attacker)}); background-repeat: no-repeat; height: 64px; width: 64px;} div p {color:white}`
   const styleSheet = newTab.document.createElement('style')
   styleSheet.innerText = styles
   newTab.document.head.appendChild(styleSheet)
@@ -92,6 +96,13 @@ function clickedAttButton () {
 }
 
 function addImages () {
+  const foodDiv = newTab.document.createElement('div')
+  newTab.document.body.append(foodDiv)
+  const giftDiv = newTab.document.createElement('div')
+  newTab.document.body.append(giftDiv)
+  const wepDiv = newTab.document.createElement('div')
+  newTab.document.body.append(wepDiv)
+
   const foodLinks = [
     {
       quality: 'q0',
@@ -129,10 +140,8 @@ function addImages () {
     if (item.quality === 'q0') {
       foodElement.style = selectedStyle
     }
-    newTab.document.body.append(foodElement)
+    foodDiv.append(foodElement)
   }
-
-  newTab.document.body.append(document.createElement('hr'))
 
   const giftLinks = [
     {
@@ -171,10 +180,8 @@ function addImages () {
     if (item.quality === 'q0') {
       giftElement.style = selectedStyle
     }
-    newTab.document.body.append(giftElement)
+    giftDiv.append(giftElement)
   }
-
-  newTab.document.body.append(document.createElement('hr'))
 
   const weaponLinks = [
     {
@@ -213,9 +220,8 @@ function addImages () {
     if (item.quality === 'q0') {
       wepElement.style = selectedStyle
     }
-    newTab.document.body.append(wepElement)
+    wepDiv.append(wepElement)
   }
-  newTab.document.body.append(document.createElement('hr'))
 }
 
 function getCountrySVG (countryName) {
